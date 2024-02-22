@@ -28,7 +28,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.7"}
+    return {"version": "0.0.1.240222.8"}
 
 
 @app.get("/items/{item_id}")
@@ -78,12 +78,13 @@ async def linebot(input: Request) -> str:
                     #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
                     #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
                     magnitude = f"{row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType']}: {row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue']}"
+                    depth = f"深度:{row['EarthquakeInfo.FocalDepth']}"
                     carousel_column = CarouselColumn(
                         thumbnail_image_url=row.ReportImageURI,
                         title=row['EarthquakeInfo.Epicenter.Location'],
-                        text=f"深度:{row['EarthquakeInfo.FocalDepth']}",
+                        text=magnitude,
                         actions=[
-                            MessageAction(label=magnitude, text=magnitude),
+                            MessageAction(label=depth, text=depth),
                             URIAction(label=row['Web'], uri=row['Web'])
                         ]
                     )
