@@ -1,6 +1,8 @@
 import json
+import time
 from typing import Optional
 import requests
+import pandas as pd
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from linebot import WebhookHandler
@@ -25,7 +27,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.2"}
+    return {"version": "0.0.1.240222.4"}
 
 
 @app.get("/items/{item_id}")
@@ -63,9 +65,37 @@ async def linebot(input: Request) -> str:
                 # radar = requests.get(radar_url)
                 # radar_json = radar.json()
                 # im_url = radar_json['cwaopendata']['dataset']['resource']['ProductURL']
-                im_url = 'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-003.png'
+                im_url = f'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-003.png{time.time_ns()}'
                 reply_image(im_url, reply_token)
+            elif msg in ['地震']:
+                df = earth_quake()
+                for idx, row in df.iterrows:
+                    img_url = row.ReportImageURI
+                    des = row.description
+                    # reply_image(img_url, reply_token)
+                    reply_message(des+'\n'+img_url, reply_token)
+                pass
     return 'OK'
+
+
+# 地震資訊函式
+def earth_quake():
+    code = config.OPENDATA_CWA_GOV
+    url = f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization={code}'
+    e_data = requests.get(url)
+    e_data_json = e_data.json()
+
+    df = pd.json_normalize(data=e_data_json['records'], record_path='Earthquake')
+    # 地震深度超過 30 公里
+    df = df[df['EarthquakeInfo.FocalDepth'] > 30]
+    if not df.empty:
+        df['description'] = df['EarthquakeInfo.OriginTime'] + \
+            df['EarthquakeInfo.Epicenter.Location'] + \
+            '深度:'+df['EarthquakeInfo.FocalDepth'].astype(str) + \
+            df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
+            df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
+        df = df[['ReportImageURI', 'description']]
+    return df
 
 
 # LINE 回傳圖片函式
@@ -78,6 +108,22 @@ def reply_image(im_url, reply_token):
             'type': 'image',
             'originalContentUrl': im_url,
             'previewImageUrl': im_url
+            }]
+    }
+    req = requests.request('POST', 'https://api.line.me/v2/bot/message/reply',
+                           headers=headers,
+                           data=json.dumps(body).encode('utf-8'))
+    print(req.text)
+
+
+# LINE 回傳訊息函式
+def reply_message(msg, reply_token):
+    headers = {'Authorization': f'Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}', 'Content-Type': 'application/json'}
+    body = {
+        'replyToken': reply_token,
+        'messages': [{
+            "type": "text",
+            "text": msg
             }]
     }
     req = requests.request('POST', 'https://api.line.me/v2/bot/message/reply',
