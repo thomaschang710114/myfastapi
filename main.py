@@ -104,9 +104,7 @@ async def linebot(input: Request) -> str:
             columns = []
             for idx, row in df.iterrows():
                 img_url = 'https://upload.wikimedia.org/wikipedia/commons/7/72/Wikinews_weather.png'
-                weather = f"{row['WeatherElement.Weather']}: {row['WeatherElement.AirTemperature']}度 \
-                    最高: {row['WeatherElement.DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature']}\
-                    最低: {row['WeatherElement.DailyExtreme.DailyLow.TemperatureInfo.AirTemperature']}"
+                weather = f"{row['WeatherElement.Weather']}: {row['WeatherElement.AirTemperature']}度 \n最高: {row['WeatherElement.DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature']}\n最低: {row['WeatherElement.DailyExtreme.DailyLow.TemperatureInfo.AirTemperature']}"
                 humidity = f"相對溼度: {row['WeatherElement.RelativeHumidity']}"
                 print(f"DEBUG {idx=}, {weather=}, {humidity=}, {row['address']}")
                 carousel_column = CarouselColumn(
