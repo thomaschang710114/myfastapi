@@ -28,7 +28,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.8"}
+    return {"version": "0.0.1.240222.9"}
 
 
 @app.get("/items/{item_id}")
@@ -78,7 +78,7 @@ async def linebot(input: Request) -> str:
                     #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
                     #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
                     magnitude = f"{row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType']}: {row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue']}"
-                    depth = f"深度:{row['EarthquakeInfo.FocalDepth']}"
+                    depth = f"深度:{row['EarthquakeInfo.FocalDepth']} 公里"
                     carousel_column = CarouselColumn(
                         thumbnail_image_url=row.ReportImageURI,
                         title=row['EarthquakeInfo.Epicenter.Location'],
@@ -97,7 +97,80 @@ async def linebot(input: Request) -> str:
                     )
                 )
                 line_bot_api.reply_message(reply_token, template_send_message)
+        elif message_type == 'location':
+            address = events[0]['message']['address'].replace('台', '臺')  # 氣象局都用 "臺"
+            print(address)
+            df = taiwan_weather(address)
+            columns = []
+            for idx, row in df.iterrows():
+                img_url = 'https://upload.wikimedia.org/wikipedia/commons/7/72/Wikinews_weather.png'
+                weather = f"{row['WeatherElement.Weather']}: {row['WeatherElement.AirTemperature']}度 \
+                    最高: {row['WeatherElement.DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature']}\
+                    最低: {row['WeatherElement.DailyExtreme.DailyLow.TemperatureInfo.AirTemperature']}"
+                humidity = f"相對溼度: {row['WeatherElement.RelativeHumidity']}"
+                carousel_column = CarouselColumn(
+                    thumbnail_image_url=img_url,
+                    title=row['address'],
+                    text=weather,
+                    actions=[
+                        MessageAction(label=row['StationName'], text=row['StationName']),
+                        MessageAction(label=humidity, text=humidity)
+                    ]
+                )
+                columns.append(carousel_column)
+            # prepare to send reply message
+            template_send_message = TemplateSendMessage(
+                alt_text='CarouselTemplate',
+                template=CarouselTemplate(
+                    columns=columns
+                )
+            )
+            line_bot_api.reply_message(reply_token, template_send_message)
     return 'OK'
+
+
+# 地震資訊函式
+def taiwan_weather(address):
+    """取得地震資料
+    https://opendata.cwa.gov.tw/index
+    /v1/rest/datastore/O-A0001-001 自動氣象站
+    /v1/rest/datastore/O-A0003-001 現在天氣觀測報告-有人氣象站資料
+
+    Returns:
+        _type_: _description_
+
+    StationName: 鼻頭, 興海
+    GeoInfo.CountyName: 屏東縣
+    GeoInfo.TownName: 滿州鄉
+    WeatherElement.Weather: 晴
+
+    df['StationName']        # 觀測站
+    df['GeoInfo.CountyName'] # 縣市
+    df['GeoInfo.TownName']   # 城鎮
+    df['WeatherElement.Weather']        # 天氣
+    df['WeatherElement.WindDirection']  # 風向
+    df['WeatherElement.WindSpeed']      # 風速
+    df['WeatherElement.DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature'] # 最高
+    df['WeatherElement.DailyExtreme.DailyLow.TemperatureInfo.AirTemperature']  # 最低
+    df['WeatherElement.AirTemperature'] # 氣溫
+    df['WeatherElement.RelativeHumidity'] # 相對濕度
+    """
+    code = config.OPENDATA_CWA_GOV
+    url1 = f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization={code}'  # 自動氣象站
+    url2 = f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization={code}'  # 有人氣象站
+    e_data = requests.get(url1)
+    e_data_json = e_data.json()
+    df1 = pd.json_normalize(data=e_data_json['records'], record_path='Station')
+
+    e_data = requests.get(url2)
+    e_data_json = e_data.json()
+    df2 = pd.json_normalize(data=e_data_json['records'], record_path='Station')
+    df2.drop(set(df2.columns) - set(df1.columns), axis=1, inplace=True)  # 確保欄位相同
+
+    df3 = pd.concat([df1, df2], axis=0)
+    df3['address'] = df3['GeoInfo.CountyName'] + df3['GeoInfo.TownName']
+
+    return df3.query('address in @address')
 
 
 # 地震資訊函式
