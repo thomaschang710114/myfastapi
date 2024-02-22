@@ -166,12 +166,14 @@ def taiwan_weather(address):
     e_data = requests.get(url2)
     e_data_json = e_data.json()
     df2 = pd.json_normalize(data=e_data_json['records'], record_path='Station')
-    df2.drop(set(df2.columns) - set(df1.columns), axis=1, inplace=True)  # 確保欄位相同
+    # df2.drop(set(df2.columns) - set(df1.columns), axis=1, inplace=True)  # 確保欄位相同
+    df2.drop(list(set(df2.columns) - set(df1.columns)), axis=1, inplace=True)  # 確保欄位相同
 
     df3 = pd.concat([df1, df2], axis=0)
     df3['address'] = df3['GeoInfo.CountyName'] + df3['GeoInfo.TownName']
 
-    return df3.query('address in @address')
+    # return df3.query('address in @address')
+    return df3[df3['address'].apply(lambda x: x in address)]
 
 
 # 地震資訊函式
