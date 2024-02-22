@@ -1,6 +1,6 @@
 def calculate(operation: str, x: float, y: float) -> float:
     '''簡易計算機
-    
+
     Returns:
         float: 計算結果
 
