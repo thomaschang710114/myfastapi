@@ -25,7 +25,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.1"}
+    return {"version": "0.0.1.240222.2"}
 
 
 @app.get("/items/{item_id}")
@@ -70,6 +70,7 @@ async def linebot(input: Request) -> str:
 
 # LINE 回傳圖片函式
 def reply_image(im_url, reply_token):
+    print(f'DEBUG {config.LINE_CHANNEL_ACCESS_TOKEN=}')
     headers = {'Authorization': f'Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}', 'Content-Type': 'application/json'}
     body = {
         'replyToken': reply_token,
