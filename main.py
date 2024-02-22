@@ -28,7 +28,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.6"}
+    return {"version": "0.0.1.240222.7"}
 
 
 @app.get("/items/{item_id}")
@@ -90,6 +90,7 @@ async def linebot(input: Request) -> str:
                     columns.append(carousel_column)
                 # prepare to send reply message
                 template_send_message = TemplateSendMessage(
+                    alt_text='CarouselTemplate',
                     template=CarouselTemplate(
                         columns=columns
                     )
@@ -100,6 +101,14 @@ async def linebot(input: Request) -> str:
 
 # 地震資訊函式
 def earth_quake():
+    """取得地震資料
+    https://opendata.cwa.gov.tw/index
+    /v1/rest/datastore/E-A0015-001 顯著有感地震報告資料
+    /v1/rest/datastore/E-A0016-001 小區域有感地震報告資料
+
+    Returns:
+        _type_: _description_
+    """
     code = config.OPENDATA_CWA_GOV
     url = f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization={code}'
     e_data = requests.get(url)
