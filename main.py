@@ -5,7 +5,8 @@ import requests
 import pandas as pd
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from linebot import WebhookHandler
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageAction, URIAction, TemplateSendMessage, CarouselTemplate, CarouselColumn
 
 import config
 from calculator import calculate
@@ -27,7 +28,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.5"}
+    return {"version": "0.0.1.240222.6"}
 
 
 @app.get("/items/{item_id}")
@@ -44,7 +45,7 @@ def operate(input: UserInput):
 
 @app.post('/linebot')
 async def linebot(input: Request) -> str:
-    # line_bot_api = LineBotApi(config.LINE_CHANNEL_ACCESS_TOKEN)
+    line_bot_api = LineBotApi(config.LINE_CHANNEL_ACCESS_TOKEN)
     handler = WebhookHandler(config.LINE_CHANNEL_SECRET)
     # 處理 LINE BOT 事件
     signature = input.headers['X-Line-Signature']
@@ -69,12 +70,31 @@ async def linebot(input: Request) -> str:
                 reply_image(im_url, reply_token)
             elif msg in ['地震']:
                 df = earth_quake()
+                columns = []
                 for idx, row in df.iterrows():
-                    img_url = row.ReportImageURI
-                    des = row.description
-                    # reply_image(img_url, reply_token)
-                    reply_message(des+'\n'+img_url, reply_token)
-                pass
+                    # df['description'] = df['EarthquakeInfo.OriginTime'] + \
+                    #     df['EarthquakeInfo.Epicenter.Location'] + \
+                    #     '深度:'+df['EarthquakeInfo.FocalDepth'].astype(str) + \
+                    #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
+                    #     df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
+                    magnitude = f"{row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType']}: {row['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue']}"
+                    carousel_column = CarouselColumn(
+                        thumbnail_image_url=row.ReportImageURI,
+                        title=row['EarthquakeInfo.Epicenter.Location'],
+                        text=f"深度:{row['EarthquakeInfo.FocalDepth']}",
+                        actions=[
+                            MessageAction(label=magnitude, text=magnitude),
+                            URIAction(label=row['Web'], uri=row['Web'])
+                        ]
+                    )
+                    columns.append(carousel_column)
+                # prepare to send reply message
+                template_send_message = TemplateSendMessage(
+                    template=CarouselTemplate(
+                        columns=columns
+                    )
+                )
+                line_bot_api.reply_message(reply_token, template_send_message)
     return 'OK'
 
 
@@ -88,13 +108,13 @@ def earth_quake():
     df = pd.json_normalize(data=e_data_json['records'], record_path='Earthquake')
     # 地震深度超過 30 公里
     df = df[df['EarthquakeInfo.FocalDepth'] > 30]
-    if not df.empty:
-        df['description'] = df['EarthquakeInfo.OriginTime'] + \
-            df['EarthquakeInfo.Epicenter.Location'] + \
-            '深度:'+df['EarthquakeInfo.FocalDepth'].astype(str) + \
-            df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
-            df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
-        df = df[['ReportImageURI', 'description']]
+    # if not df.empty:
+    #     df['description'] = df['EarthquakeInfo.OriginTime'] + \
+    #         df['EarthquakeInfo.Epicenter.Location'] + \
+    #         '深度:'+df['EarthquakeInfo.FocalDepth'].astype(str) + \
+    #         df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeType'] + \
+    #         df['EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue'].astype(str)
+    #     df = df[['ReportImageURI', 'description']]
     return df
 
 
