@@ -28,7 +28,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.9"}
+    return {"version": "0.0.1.240222.10"}
 
 
 @app.get("/items/{item_id}")
@@ -108,6 +108,7 @@ async def linebot(input: Request) -> str:
                     最高: {row['WeatherElement.DailyExtreme.DailyHigh.TemperatureInfo.AirTemperature']}\
                     最低: {row['WeatherElement.DailyExtreme.DailyLow.TemperatureInfo.AirTemperature']}"
                 humidity = f"相對溼度: {row['WeatherElement.RelativeHumidity']}"
+                print(f"DEBUG {idx=}, {weather=}, {humidity=}, {row['address']}")
                 carousel_column = CarouselColumn(
                     thumbnail_image_url=img_url,
                     title=row['address'],
