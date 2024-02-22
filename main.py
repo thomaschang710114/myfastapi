@@ -27,7 +27,7 @@ async def root():
 
 @app.get('/version')
 def version():
-    return {"version": "0.0.1.240222.4"}
+    return {"version": "0.0.1.240222.5"}
 
 
 @app.get("/items/{item_id}")
@@ -69,7 +69,7 @@ async def linebot(input: Request) -> str:
                 reply_image(im_url, reply_token)
             elif msg in ['地震']:
                 df = earth_quake()
-                for idx, row in df.iterrows:
+                for idx, row in df.iterrows():
                     img_url = row.ReportImageURI
                     des = row.description
                     # reply_image(img_url, reply_token)
