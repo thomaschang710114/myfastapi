@@ -66,7 +66,7 @@ async def linebot(input: Request) -> str:
                 # radar = requests.get(radar_url)
                 # radar_json = radar.json()
                 # im_url = radar_json['cwaopendata']['dataset']['resource']['ProductURL']
-                im_url = f'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-003.png{time.time_ns()}'
+                im_url = f'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-003.png?{time.time_ns()}'
                 reply_image(im_url, reply_token)
             elif msg in ['地震']:
                 df = earth_quake()
