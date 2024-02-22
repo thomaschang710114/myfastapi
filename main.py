@@ -85,7 +85,7 @@ async def linebot(input: Request) -> str:
                         text=magnitude,
                         actions=[
                             MessageAction(label=depth, text=depth),
-                            URIAction(label=row['Web'], uri=row['Web'])
+                            URIAction(label='前往查看', uri=row['Web'])
                         ]
                     )
                     columns.append(carousel_column)
